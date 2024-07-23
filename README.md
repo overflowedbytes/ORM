@@ -1,4 +1,4 @@
-# FIVEM ORM
+# Lua ORM
 A FiveM Lua ORM made for interacting with databases easier.
 
 # DEPENDENCIES
