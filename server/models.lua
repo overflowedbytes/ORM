@@ -4,7 +4,7 @@ ORM = setmetatable({}, { __index = ORM})
 ---@param args table - The column names
 function ORM:createMethods(name, args)
     if type(name) ~= "string" or type(args) ~= "table" then
-        return error("Invalid arguments. Expected string 'name' and table 'args'.")
+        error("Invalid arguments. Expected string 'name' and table 'args'.")
     end
 
     local self = setmetatable({}, { __index = ORM })
@@ -13,7 +13,7 @@ function ORM:createMethods(name, args)
     ---@return boolean | nil
     function self:create(columns)
         if type(columns) ~= "table" then
-            return error("Invalid argument 'columns'. Expected a table.")
+            error("Invalid argument 'columns'. Expected a table.")
         end
 
         local template = ("INSERT INTO %s"):format(name)
@@ -27,9 +27,9 @@ function ORM:createMethods(name, args)
                 return error(("Invalid column '%s'. Please provide a valid column name."):format(k))
             end
 
-            table.insert(formattedColumns, k)
-            table.insert(placeholders, "?")
-            table.insert(params, v)
+            formattedColumns[#formattedColumns + 1] = k
+            placeholders[#placeholders + 1] = "?"
+            params[#params + 1] = v
         end
 
         local columnsStr = table.concat(formattedColumns, ",")
@@ -41,7 +41,7 @@ function ORM:createMethods(name, args)
 
 
         if not success then
-            return error("Failed to execute INSERT query")
+            error("Failed to execute INSERT query")
         end
 
         return true
@@ -51,14 +51,14 @@ function ORM:createMethods(name, args)
     ---@param update table - What we are updating
     function self:update(where, update)
         if type(where) ~= "table" or type(update) ~= "table" then
-            return error("Invalid Argument types expected where as 'table and update as 'table")
+            error("Invalid Argument types expected where as 'table and update as 'table")
         end
 
         local template = ("UPDATE %s"):format(name)
 
         for k, v in pairs(where) do
             if not table.contains(args, k) then
-                return error(("Invalid column '%s'. Please provide a valid column name."):format(k))
+                error(("Invalid column '%s'. Please provide a valid column name."):format(k))
             end
         end
     end
@@ -83,7 +83,7 @@ end
 ---@param schema table - The schema of the model
 function ORM:model(name, schema)
     if not name or not schema then 
-        return error(("Missing Arguments - name: %s, schema: %s"):format(tostring(name), tostring(schema))) 
+        error(("Missing Arguments - name: %s, schema: %s"):format(tostring(name), tostring(schema))) 
     end
 
     local template = ("CREATE TABLE IF NOT EXISTS %s"):format(name)
@@ -93,21 +93,21 @@ function ORM:model(name, schema)
     for key, value in pairs(schema) do
         if type(value) == "table" then
             if not value.type or not value.size then
-                return error(("Missing Arguments - id: %s, type: %s"):format(value.type, value.size))
+                error(("Missing Arguments - id: %s, type: %s"):format(value.type, value.size))
             end
             
             if not table.contains(Datatypes, value.type) then
-                return error(("Provided datatype seems to not exist: datatype: %s"):format(value.type))
+                error(("Provided datatype seems to not exist: datatype: %s"):format(value.type))
             end
 
             local columnDef = ("%s %s(%s)"):format(key, value.type, value.size)
-            table.insert(columns, columnDef)
+            columns[#columns + 1] = columnDef 
         else
             local columnDef = ("%s %s"):format(key, value)
-            table.insert(columns, columnDef)
+            columns[#columns + 1] = columnDef
         end
 
-        table.insert(args, key)
+        args[#args + 1] = key 
     end
 
     local columnsString = table.concat(columns, ", ")
@@ -117,6 +117,6 @@ function ORM:model(name, schema)
     
     if query then
         ORM:logging("success", "Successful query")
-        return self:createMethods(name, args)
+        self:createMethods(name, args)
     end
 end
