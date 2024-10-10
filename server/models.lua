@@ -1,4 +1,8 @@
-ORM = setmetatable({}, { __index = ORM})
+ORM = setmetatable({}, {
+    __index = function(table, index)
+        return rawget(table, index)
+    end
+})
 
 ---@param name string - The name of the table created
 ---@param args table - The column names
@@ -7,11 +11,11 @@ function ORM:createMethods(name, args)
         error("Invalid arguments. Expected string 'name' and table 'args'.")
     end
 
-    local self = setmetatable({}, { __index = ORM })
+    local object = setmetatable({}, { __index = ORM })
 
     ---@param columns table - The data to create must be valid columns
     ---@return boolean | nil
-    function self:create(columns)
+    function object:create(columns)
         if type(columns) ~= "table" then
             error("Invalid argument 'columns'. Expected a table.")
         end
@@ -24,7 +28,7 @@ function ORM:createMethods(name, args)
 
         for k, v in pairs(columns) do
             if not table.contains(args, k) then
-                return error(("Invalid column '%s'. Please provide a valid column name."):format(k))
+                error(("Invalid column '%s'. Please provide a valid column name."):format(k))
             end
 
             formattedColumns[#formattedColumns + 1] = k
@@ -37,10 +41,10 @@ function ORM:createMethods(name, args)
 
         local queryString = ("%s (%s) VALUES (%s)"):format(template, columnsStr, placeholdersStr)
 
-        local success = MySQL.insert.await(queryString, params)
+        local result = MySQL.insert.await(queryString, params)
 
 
-        if not success then
+        if not result then
             error("Failed to execute INSERT query")
         end
 
@@ -49,7 +53,7 @@ function ORM:createMethods(name, args)
 
     ---@param where table - Where to update
     ---@param update table - What we are updating
-    function self:update(where, update)
+    function object:update(where, update)
         if type(where) ~= "table" or type(update) ~= "table" then
             error("Invalid Argument types expected where as 'table and update as 'table")
         end
@@ -64,19 +68,19 @@ function ORM:createMethods(name, args)
     end
 
     -- TODO: Finish Methods
-    function self:delete()
+    function object:delete()
         
     end
 
-    function self:exists()
+    function object:exists()
 
     end
 
-    function self:findOne()
+    function object:findOne()
         
     end
 
-    return self
+    return object
 end
 
 ---@param name string - The table name
@@ -97,7 +101,7 @@ function ORM:model(name, schema)
             end
             
             if not table.contains(Datatypes, value.type) then
-                error(("Provided datatype seems to not exist: datatype: %s"):format(value.type))
+                error(("Datatype does not exist - datatype: %s"):format(value.type))
             end
 
             local columnDef = ("%s %s(%s)"):format(key, value.type, value.size)
@@ -116,7 +120,7 @@ function ORM:model(name, schema)
     local query = MySQL.rawExecute.await(formattedQuery)
     
     if query then
-        ORM:logging("success", "Successful query")
+        self:logging("success", "Successful query")
         self:createMethods(name, args)
     end
 end
